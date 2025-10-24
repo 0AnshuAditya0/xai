@@ -1,49 +1,95 @@
-# XAI Image Classifier
+🔍 Explainable AI Image Classifier (XAI)
 
-An explainable image classification web app using ResNet18 fine-tuned on CIFAR-10, with Grad-CAM visualizations for interpretability.
+An Explainable AI Image Classification Web App powered by ResNet50 + Grad-CAM.
+See exactly what the AI focuses on when making predictions — transparent & trustworthy AI.
 
-## Features
+✨ Features
 
-- **Image Classification**: Classifies images into 10 categories (airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck).
-- **Explainability**: Uses Grad-CAM to show which parts of the image influenced the prediction.
-- **Interactive UI**: Built with Gradio for easy web-based interaction.
+✅ Image Classification on 1000 ImageNet categories
+✅ Explainability using Gradient-weighted Class Activation Mapping (Grad-CAM)
+✅ Interactive & Fast UI built with Gradio
+✅ GPU Support for real-time inference
+✅ Production-ready deployment design
 
-## Installation
+🧠 How It Works
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/xai-image-classifier.git
-   cd xai-image-classifier
-   ```
+Input image → Preprocessing (ImageNet transforms)
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+Model: ResNet50 (pretrained on 1.2M ImageNet images)
 
-3. Download the model file `xai_resnet18.pth` and place it in the `model/` directory.
+AI prediction → Top-5 result visualization
 
-## Usage
+Grad-CAM highlights important pixel regions the model uses to decide ✅
+Helps detect:
 
-Run the app:
-```bash
+Model biases
+
+Wrong object focus
+
+Reliability of prediction
+
+🏗 Tech Stack
+Component	Technology
+Model	ResNet50 (TorchVision)
+Explainability	Grad-CAM via Captum
+Interface	Gradio
+Backend	PyTorch
+Deployment	Local / Hugging Face / Cloud
+📦 Installation
+git clone https://github.com/your-username/xai.git
+cd xai
+pip install -r requirements.txt
 python app.py
-```
 
-Open the provided URL in your browser, upload an image, and click "Analyze Image" to get predictions and explanations.
 
-## Requirements
+✅ Then open the local URL and upload any image!
 
-- Python 3.7+
-- CUDA-compatible GPU (optional, for faster inference)
-- Dependencies listed in `requirements.txt`
+📌 Requirements
 
-## Model Details
+Python 3.9+
 
-- **Architecture**: ResNet18 with modified fully-connected layer.
-- **Training Data**: CIFAR-10 dataset (60,000 images).
-- **Pre-trained Weights**: None (trained from scratch).
+PyTorch 2.0+
 
-## License
+Gradio 3.0+
+
+CUDA GPU (optional but faster)
+
+🚀 Deployment Ready
+
+You can deploy on:
+
+Hugging Face Spaces
+
+AWS / GCP / Azure
+
+Local / On-prem
+
+🔗 Add your deployment link here:
+
+➡️ Live Demo: Coming Soon
+➡️ GitHub Repo: https://github.com/0AnshuAditya0/xai
+
+🎯 Real-World Impact
+
+Perfect for industries where AI must be explainable, such as:
+
+🏥 Healthcare (X-ray / MRI model audits)
+
+🚗 Autonomous vehicle perception validation
+
+📚 AI education and learning
+
+🔒 Identity & security checks
+
+⚖️ Fairness auditing in AI systems
+
+🙌 Author
+
+Anshu Aditya
+AI Engineer — Building transparent & responsible AI 🚀
+Let’s connect: Add your LinkedIn/GitHub/Twitter here
+
+📝 License
 
 MIT License
+Free for research, learning & production use ✅
