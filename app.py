@@ -1,5 +1,5 @@
 """
-Explainable AI Image Classifier - Optimized Production Version
+ XAI Image Classifier - Optimized Production Version
 ===============================================================
 """
 
@@ -16,11 +16,6 @@ import urllib.request
 from torch.nn.functional import interpolate
 import warnings
 warnings.filterwarnings('ignore')
-
-# ============================================================================
-# CONFIGURATION & MODEL LOADING
-# ============================================================================
-
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 @torch.no_grad()
@@ -30,7 +25,6 @@ def load_model_and_labels():
     model.eval()
     model = model.to(DEVICE)
     
-    # Load cleaner ImageNet labels
     url = "https://raw.githubusercontent.com/pytorch/hub/master/imagenet_classes.txt"
     response = urllib.request.urlopen(url)
     labels = [line.decode('utf-8').strip() for line in response.readlines()]
@@ -39,34 +33,28 @@ def load_model_and_labels():
 
 model, IMAGENET_LABELS = load_model_and_labels()
 
-# Setup Grad-CAM
 target_layer = model.layer4[-1]
 gradcam = LayerGradCam(model, target_layer)
 
-# Optimized preprocessing
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# ============================================================================
-# OPTIMIZED PREDICTION FUNCTION
-# ============================================================================
 
 def predict_and_explain(image):
     if image is None:
         return "Please upload an image", None, None
 
     try:
-        # Preprocess
+        
         img_tensor = transform(image).unsqueeze(0).to(DEVICE)
         
-        # Predict with temperature scaling for better confidence
         with torch.no_grad():
             output = model(img_tensor)
-            # Apply temperature scaling (makes confidence more realistic)
-            temperature = 1.0  # Adjust between 0.8-1.5 if needed
+            
+            temperature = 1.0  
             scaled_output = output / temperature
             probabilities = torch.softmax(scaled_output, dim=1)
             top10_prob, top10_idx = torch.topk(probabilities, 10)
@@ -74,44 +62,37 @@ def predict_and_explain(image):
         pred_class = top10_idx[0][0].item()
         confidence = top10_prob[0][0].item()
 
-        # Generate Grad-CAM
         attributions = gradcam.attribute(img_tensor, target=pred_class)
         attr_resized = interpolate(attributions, size=(224, 224), mode='bilinear', align_corners=False)
         attr_np = attr_resized.squeeze().cpu().detach().numpy()
         attr_np = (attr_np - attr_np.min()) / (attr_np.max() - attr_np.min() + 1e-8)
 
-        # Create enhanced visualization (LARGER SIZE)
-        fig = plt.figure(figsize=(20, 12))  # Increased from 18x10 to 20x12
+        fig = plt.figure(figsize=(20, 12))  
         fig.patch.set_facecolor('#0a0a0a')
         
-        gs = fig.add_gridspec(2, 3, height_ratios=[2, 1], hspace=0.25, wspace=0.12)  # More space for images
+        gs = fig.add_gridspec(2, 3, height_ratios=[2, 1], hspace=0.25, wspace=0.12)  
         
-        # Top row: Larger image panels
         ax1 = fig.add_subplot(gs[0, 0])
         ax2 = fig.add_subplot(gs[0, 1])
         ax3 = fig.add_subplot(gs[0, 2])
         ax4 = fig.add_subplot(gs[1, :])
         
-        # Panel 1: Original
         ax1.imshow(image)
         ax1.set_title("Original Image", fontsize=15, fontweight='600', color='#e0e0e0', pad=15)
         ax1.axis('off')
         
-        # Panel 2: Detailed Heatmap
         im = ax2.imshow(attr_np, cmap='jet', interpolation='bilinear')
         ax2.set_title("Grad-CAM Heatmap", fontsize=15, fontweight='600', color='#e0e0e0', pad=15)
         ax2.axis('off')
         cbar = plt.colorbar(im, ax=ax2, fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=10, colors='#a0a0a0')
         cbar.set_label('Importance', rotation=270, labelpad=20, color='#e0e0e0', fontsize=11, fontweight='600')
-        
-        # Panel 3: Overlay
+    
         ax3.imshow(image)
         ax3.imshow(attr_np, cmap='jet', alpha=0.5, interpolation='bilinear')
         ax3.set_title(f"AI Focus: {IMAGENET_LABELS[pred_class]}", fontsize=15, fontweight='600', color='#e0e0e0', pad=15)
         ax3.axis('off')
         
-        # Panel 4: Bar Graph
         top10_labels = [IMAGENET_LABELS[idx.item()] for idx in top10_idx[0]]
         top10_probs = [prob.item() * 100 for prob in top10_prob[0]]
         
@@ -131,7 +112,6 @@ def predict_and_explain(image):
         ax4.spines['bottom'].set_color('#404040')
         ax4.tick_params(colors='#a0a0a0', labelsize=11)
         
-        # Add percentage labels
         for bar, prob in zip(bars, top10_probs[::-1]):
             ax4.text(prob + 1.5, bar.get_y() + bar.get_height()/2, 
                     f'{prob:.1f}%', va='center', fontsize=11, color='#e0e0e0', fontweight='600')
@@ -144,8 +124,7 @@ def predict_and_explain(image):
         result_image = Image.open(buf)
         plt.close(fig)
 
-        # Create detailed heatmap panel
-        fig2, axes = plt.subplots(1, 3, figsize=(18, 6))  # Increased from 15x5 to 18x6
+        fig2, axes = plt.subplots(1, 3, figsize=(18, 6)) 
         fig2.patch.set_facecolor('#0a0a0a')
         
         axes[0].imshow(image)
@@ -172,7 +151,7 @@ def predict_and_explain(image):
         detailed_heatmap = Image.open(buf2)
         plt.close(fig2)
 
-        # Generate HTML output
+       
         badge = "high" if confidence > 0.8 else "medium" if confidence > 0.5 else "low"
         badge_text = "High Confidence" if confidence > 0.8 else "Medium Confidence" if confidence > 0.5 else "Low Confidence"
         badge_icon = "🎯" if confidence > 0.8 else "⚡" if confidence > 0.5 else "⚠️"
@@ -206,9 +185,6 @@ def predict_and_explain(image):
     except Exception as e:
         return f"<div class='error-msg'>⚠️ Error: {str(e)}</div>", None, None
 
-# ============================================================================
-# STREAMLINED CSS
-# ============================================================================
 
 custom_css = """
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -258,15 +234,12 @@ footer, .footer { display: none !important; }
 @media (max-width: 768px) { .top-section { grid-template-columns: 1fr; } #input-image { height: 240px !important; } .top5-row { grid-template-columns: 35px 1fr 70px; } .bar-wrap { grid-column: 1 / -1; margin-top: 0.375rem; } }
 """
 
-# ============================================================================
-# STREAMLINED INTERFACE
-# ============================================================================
 
 with gr.Blocks(css=custom_css, theme=gr.themes.Base(), title="Explainable AI") as demo:
     gr.HTML('<link rel="icon" href="https://res.cloudinary.com/ddn0xuwut/image/upload/v1761284764/encryption_hc0fxo.png" type="image/png">')
 
     with gr.Column(elem_classes="main-wrapper"):
-        gr.HTML('<div class="hero-header"><h1>Explainable AI Classifier</h1><p class="subtitle">See exactly what the AI sees – powered by ResNet50 + Grad-CAM</p></div>')
+        gr.HTML('<div class="hero-header"><h1>XAI Classifier</h1><p class="subtitle">See exactly what the AI sees – powered by ResNet50 + Grad-CAM</p></div>')
 
         with gr.Row(elem_classes="top-section"):
             with gr.Column(scale=0, min_width=400, elem_classes="upload-panel"):

@@ -1,4 +1,4 @@
-# XAI: Explainable AI Image Classifier
+# XAI Image Classifier - Optimized Production Version
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)  
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-EE4C2C?style=flat&logo=pytorch&logoColor=white)](https://pytorch.org/)  
