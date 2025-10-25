@@ -12,9 +12,9 @@ from torch.nn.functional import interpolate
 import warnings
 warnings.filterwarnings('ignore')
 
-
-torch.backends.cudnn.benchmark = True  
-torch.set_float32_matmul_precision('high') 
+# Performance optimizations
+torch.backends.cudnn.benchmark = True  # Auto-tune for best performance
+torch.set_float32_matmul_precision('high')  # Use TF32 on Ampere GPUs
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -23,16 +23,16 @@ def load_model_and_labels():
     """Load ResNet152 model with optimizations"""
     print("🚀 Loading ResNet152 model...")
     
-   
+    # Load model
     model = models.resnet152(weights='IMAGENET1K_V2')
     model.eval().to(DEVICE)
     
-    
+    # Optimize model for inference
     if DEVICE.type == 'cuda':
-        model = model.half() 
+        model = model.half()  # FP16 precision for 2x speedup on GPU
         print("✅ Model optimized with FP16 precision")
     
-   
+    # Load ImageNet labels (cached)
     url = "https://raw.githubusercontent.com/pytorch/hub/master/imagenet_classes.txt"
     response = urllib.request.urlopen(url)
     labels = [line.decode('utf-8').strip() for line in response.readlines()]
@@ -42,10 +42,11 @@ def load_model_and_labels():
 
 model, IMAGENET_LABELS = load_model_and_labels()
 
-
+# Setup Grad-CAM
 target_layer = model.layer4[-1]
 gradcam = LayerGradCam(model, target_layer)
 
+# Optimized transform with tensor output
 transform = transforms.Compose([
     transforms.Resize((224, 224), interpolation=transforms.InterpolationMode.BILINEAR),
     transforms.ToTensor(),
@@ -58,24 +59,25 @@ def predict_and_explain(image):
         return "Please upload an image", None, None
 
     try:
-        
+        # Prepare input with optimal dtype
         img_tensor = transform(image).unsqueeze(0).to(DEVICE)
         if DEVICE.type == 'cuda':
-            img_tensor = img_tensor.half()  
+            img_tensor = img_tensor.half()  # Match model precision
         
         with torch.no_grad():
-         
+            # Fast inference
             output = model(img_tensor)
             if DEVICE.type == 'cuda':
-                output = output.float()  
+                output = output.float()  # Convert back for softmax
             probabilities = torch.softmax(output, dim=1)
         
         top10_prob, top10_idx = torch.topk(probabilities, 10)
         pred_class = top10_idx[0][0].item()
         confidence = top10_prob[0][0].item()
 
+        # Generate Grad-CAM (only for visualization, not time-critical)
         if DEVICE.type == 'cuda':
-            grad_tensor = img_tensor.float()  
+            grad_tensor = img_tensor.float()  # Grad-CAM needs FP32
         else:
             grad_tensor = img_tensor
             
@@ -84,6 +86,7 @@ def predict_and_explain(image):
         attr_np = attr_resized.squeeze().cpu().detach().numpy()
         attr_np = (attr_np - attr_np.min()) / (attr_np.max() - attr_np.min() + 1e-8)
 
+        # Efficient visualization
         fig = plt.figure(figsize=(24, 14))  
         fig.patch.set_facecolor('#0a0a0a')
         
@@ -141,6 +144,7 @@ def predict_and_explain(image):
         result_image = Image.open(buf)
         plt.close(fig)
 
+        # Detailed heatmap analysis
         fig2, axes = plt.subplots(2, 2, figsize=(20, 18)) 
         fig2.patch.set_facecolor('#0a0a0a')
         
@@ -172,6 +176,7 @@ def predict_and_explain(image):
         detailed_heatmap = Image.open(buf2)
         plt.close(fig2)
 
+        # Prediction card
         badge = "high" if confidence > 0.8 else "medium" if confidence > 0.5 else "low"
         badge_text = "High Confidence" if confidence > 0.8 else "Medium Confidence" if confidence > 0.5 else "Low Confidence"
         badge_icon = "🎯" if confidence > 0.8 else "⚡" if confidence > 0.5 else "⚠️"
@@ -189,7 +194,7 @@ def predict_and_explain(image):
             </div>"""
         top5_html += "</div>"
 
-        
+        # Performance info
         precision_info = "FP16 (GPU Accelerated)" if DEVICE.type == 'cuda' else "FP32 (CPU)"
         
         prediction_text = f"""
@@ -309,4 +314,4 @@ with gr.Blocks(css=custom_css, theme=gr.themes.Base(), title="XAI Image Classifi
     predict_btn.click(fn=predict_and_explain, inputs=[input_image], outputs=[output_text, output_image, detailed_heatmap])
 
 if __name__ == "__main__":
-    demo.launch(share=False, show_error=True)
+    demo.launch()
